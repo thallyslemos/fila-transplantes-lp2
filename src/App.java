@@ -1,9 +1,14 @@
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayDeque;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Scanner;
@@ -22,7 +27,7 @@ public class App {
                 System.out.println("Insira o sexo do paciente: ");
                 String sexo = input.nextLine();
                 System.out.println("Insira a data de nascimento do paciente (dd/mm/aaaa): ");
-                LocalDate dataNascimento = getLocalDateForString(input.nextLine());
+                LocalDate dataNascimento = conversaoDataData(input.nextLine());
                 System.out.println("Insira nome do orgão a ser transplantado: ");
                 Orgaos orgao = selecionaOrgao(input);
                 novoPaciente = new Paciente(nome, CPF, sexo, dataNascimento, orgao);
@@ -37,18 +42,77 @@ public class App {
         return novoPaciente;
     }
 
+    // padrão de entrada de data
     private static final String PATTERN_DATE = "dd/MM/yyyy";
 
-    public static LocalDate getLocalDateForString(final String string) {
+    // conversão de string em data
+    public static LocalDate conversaoDataData(final String string) {
         return LocalDate.parse(string,
                 DateTimeFormatter.ofPattern(PATTERN_DATE));
     }
 
-    public static void programa2() {
-        System.out.println("Programa 2");
+    /*
+     * Permite selecionar uma dentre as quatro filas
+     * Exibe o próximo paciente da fila de doação selecionada
+     * marca a data e horário de saída
+     * exibe os dados do paciente e o tempo em fila
+     */
+    public static void mostrarProximoPaciente(Scanner input, Queue<Paciente> filaCoracao, Queue<Paciente> filaRim,
+            Queue<Paciente> filaPulmao,
+            Queue<Paciente> filaFigado) {
+        int qntOrgaos = Orgaos.values().length;
+
+        System.out.println("Ver próximo paciente da fila de: ");
+        for (int i = 0; i < qntOrgaos; i++) {
+            System.out.println((i + 1) + " " + Orgaos.values()[i]);
+
+        }
+
+        System.out.print("Selecione a fila [1-4]: ");
+        int orgao = input.nextInt();
+        Paciente paciente = null;
+
+        switch (orgao) {
+            case 1:
+                System.out.println("Procedimento - Trnasplnate de Coração:\n");
+                if (filaCoracao.size() > 0)
+                    paciente = filaCoracao.peek();
+                break;
+            case 2:
+                System.out.println("Procedimento - Trnasplnate de Rim.");
+                if (filaRim.size() > 0)
+                    paciente = filaRim.peek();
+                break;
+            case 3:
+                System.out.println("Procedimento - Trnasplnate de Pulmao.");
+                if (filaPulmao.size() > 0)
+                    paciente = filaPulmao.peek();
+                break;
+            case 4:
+                System.out.println("Procedimento - Trnasplnate de Figado.");
+                if (filaFigado.size() > 0)
+                    paciente = filaFigado.peek();
+                break;
+            default:
+                System.out.println("Opçõa não encontrada");
+                break;
+        }
+        if (paciente != null) {
+            System.out.println("O próximo da fila é: ");
+            System.out.println(paciente.toString());
+            exibirDiferencaTempo(CalculaDiferencaTempo(paciente));
+        } else {
+            System.out.println("Não há pacientes nessa fila.");
+        }
 
     }
 
+    /*
+     * Permite selecionar uma dentre as quatro filas
+     * Remove o próximo paciente da fila de doação selecionada
+     * marca a data e horário de saída
+     * exibe os dados do paciente e o tempo em fila
+     */
     public static void chamarProximo(Scanner input, Queue<Paciente> filaCoracao, Queue<Paciente> filaRim,
             Queue<Paciente> filaPulmao,
             Queue<Paciente> filaFigado) {
@@ -91,19 +155,25 @@ public class App {
         }
         if (paciente != null) {
             paciente.setData_saida();
-            exibirDiferencaTempo(paciente);
             System.out.println(paciente.toString());
+            exibirDiferencaTempo(CalculaDiferencaTempo(paciente));
         } else {
             System.out.println("Não há pacientes nessa fila.");
         }
     }
 
+    /*
+     * verificação de CPF - usado no cadastro do paciente
+     */
     public static void verificarCpfExistente(String cpf, Map cadastroPacientes) throws Exception {
         if (cadastroPacientes.containsKey(cpf)) {
             throw new Exception("Já existe paciente cadastrado com esse CPF");
         }
     }
 
+    /*
+     * Seleção de orgãos - usado no cadastro de paciente
+     */
     public static Orgaos selecionaOrgao(Scanner input) throws Exception {
         Orgaos orgao = null;
         int qntOrgaos = Orgaos.values().length;
@@ -124,21 +194,27 @@ public class App {
         return orgao;
     }
 
-    public static void programa3() {
-        System.out.println("Programa 3");
-    }
-
     public static void exibirMenuOperacoes() {
         System.out.println("---------------Opções------------------");
         System.out.println("* 1 - Cadastrar Paciente");
         System.out.println("* 2 - Chamar paciente para transplante");
         System.out.println("* 3 - Consultar dados do próximo paciente ");
+        System.out.println("* 4 - Consultas estatísticas sobre filas");
+        System.out.println("* 5 - Sair");
+        System.out.println("---------------------------------------");
+    }
+
+    public static void exibirMenuEstatistica() {
+        System.out.println("-------------Estatísticas--------------");
+        System.out.println("* 1 - Quantidade de pacientes por fila");
+        System.out.println("* 2 - Percentual por tipo de transplante");
+        System.out.println("* 3 - Tempo médio de espera por fila ");
         System.out.println("* 4 - Sair");
         System.out.println("---------------------------------------");
     }
 
     /*
-     * Adiona paciente na fila correta com base no orgão a ser recebido
+     * Adiciona paciente na fila correta com base no orgão a ser recebido
      */
     public static void adicionaPacienteNaFila(Paciente paciente, Queue<Paciente> filaCoracao, Queue<Paciente> filaRim,
             Queue<Paciente> filaPulmao,
@@ -162,9 +238,31 @@ public class App {
         }
     }
 
-    public static void exibirDiferencaTempo(Paciente paciente) {
+    /*
+     * Calcula a diferença entre tempo de cadastro e tempo de saída da fila em
+     * minutos
+     * caso o paciente ainda não tenha saído dafila o calculo sera entre a data de
+     * entrada e a data corrente da consulta
+     */
+    public static long CalculaDiferencaTempo(Paciente paciente) {
+        long diferencaEmMinutos;
+        if (paciente.getData_saida() != null) {
+            // para calculo de pacientes removidos da fila de transplante
+            diferencaEmMinutos = ChronoUnit.MINUTES.between(paciente.getData_entrada(), paciente.getData_saida());
+        } else {
+            // para pacientes que ainda estão na fila
+            diferencaEmMinutos = ChronoUnit.MINUTES.between(paciente.getData_entrada(), LocalDateTime.now());
+        }
 
-        long diferencaEmMinutos = ChronoUnit.MINUTES.between(paciente.getData_entrada(), paciente.getData_saida());
+        return diferencaEmMinutos;
+    }
+
+    /*
+     * Recebe um intervalo de tempo dado em minutos
+     * Exibe esse intervalo em dias, horas e minutos
+     */
+    public static void exibirDiferencaTempo(long diferencaEmMinutos) {
+
         long diferencaEmDias = diferencaEmMinutos / 1440;
         long diferencaMinutos = diferencaEmMinutos % 1440;
         long diferencaHoras = diferencaMinutos / 60;
@@ -175,117 +273,121 @@ public class App {
                         + " minuto(s).");
     }
 
-    public static void selecionarFila(Queue<Paciente> pacientes) {
+    // public static void selecionarFila(Queue<Paciente> pacientes) {
 
-        Scanner sc = new Scanner(System.in);
+    // Scanner sc = new Scanner(System.in);
 
-        String orgaosFila;
+    // String orgaosFila;
 
-        System.out.println("Selecione a fila de orgãos: ");
-        System.out.println("Opções: coracao, rim, pulmao, figado");
+    // System.out.println("Selecione a fila de orgãos: ");
+    // System.out.println("Opções: coracao, rim, pulmao, figado");
 
-        orgaosFila = sc.next();
+    // orgaosFila = sc.next();
 
-        for (Orgaos o : Orgaos.values()) {
+    // for (Orgaos o : Orgaos.values()) {
 
-            switch (o.getOrgaos().toLowerCase()) {
-                case "coracao":
-                    if (o.getOrgaos().toLowerCase() == orgaosFila.toLowerCase()) {
-                        for (Paciente p : pacientes) {
-                            System.out.println("Fila espera de " + orgaosFila.toLowerCase() + " " + p + "\r\n");
-                        }
+    // switch (o.getOrgaos().toLowerCase()) {
+    // case "coracao":
+    // if (o.getOrgaos().toLowerCase() == orgaosFila.toLowerCase()) {
+    // for (Paciente p : pacientes) {
+    // System.out.println("Fila espera de " + orgaosFila.toLowerCase() + " " + p +
+    // "\r\n");
+    // }
 
-                    }
+    // }
 
-                    break;
-                case "rim":
+    // break;
+    // case "rim":
 
-                    if (o.getOrgaos().toLowerCase() == orgaosFila.toLowerCase()) {
-                        for (Paciente p : pacientes) {
-                            System.out.println("Fila espera de " + orgaosFila.toLowerCase() + " " + p + "\r\n");
-                        }
-                    }
+    // if (o.getOrgaos().toLowerCase() == orgaosFila.toLowerCase()) {
+    // for (Paciente p : pacientes) {
+    // System.out.println("Fila espera de " + orgaosFila.toLowerCase() + " " + p +
+    // "\r\n");
+    // }
+    // }
 
-                    break;
-                case "pulmao":
-                    if (o.getOrgaos().toLowerCase() == orgaosFila.toLowerCase()) {
-                        for (Paciente p : pacientes) {
-                            System.out.println("Fila espera de " + orgaosFila.toLowerCase() + " " + p + "\r\n");
-                        }
-                    }
+    // break;
+    // case "pulmao":
+    // if (o.getOrgaos().toLowerCase() == orgaosFila.toLowerCase()) {
+    // for (Paciente p : pacientes) {
+    // System.out.println("Fila espera de " + orgaosFila.toLowerCase() + " " + p +
+    // "\r\n");
+    // }
+    // }
 
-                    break;
-                case "figado":
-                    if (o.getOrgaos().toLowerCase() == orgaosFila.toLowerCase()) {
-                        for (Paciente p : pacientes) {
-                            System.out.println("Fila espera de " + orgaosFila.toLowerCase() + " " + p + "\r\n");
-                        }
-                    }
+    // break;
+    // case "figado":
+    // if (o.getOrgaos().toLowerCase() == orgaosFila.toLowerCase()) {
+    // for (Paciente p : pacientes) {
+    // System.out.println("Fila espera de " + orgaosFila.toLowerCase() + " " + p +
+    // "\r\n");
+    // }
+    // }
 
-                    break;
-            }
+    // break;
+    // }
 
-        }
+    // }
 
-        sc.close();
+    // sc.close();
 
-    }
+    // }
 
-    public static void proximoFila(Queue<Paciente> proximoFila) {
+    // public static void proximoFila(Queue<Paciente> proximoFila) {
 
-        Scanner sc = new Scanner(System.in);
+    // Scanner sc = new Scanner(System.in);
 
-        String orgaosFila;
+    // String orgaosFila;
 
-        System.out.println("Selecione a fila de orgãos: ");
-        System.out.println("Opções: coracao, rim, pulmao, figado");
+    // System.out.println("Selecione a fila de orgãos: ");
+    // System.out.println("Opções: coracao, rim, pulmao, figado");
 
-        orgaosFila = sc.next();
+    // orgaosFila = sc.next();
 
-        for (Orgaos o : Orgaos.values()) {
+    // for (Orgaos o : Orgaos.values()) {
 
-            switch (o.getOrgaos().toLowerCase()) {
-                case "coracao":
-                    if (o.getOrgaos().toLowerCase() == orgaosFila.toLowerCase()) {
-                        for (Paciente p : proximoFila) {
-                            System.out.println("Proximo da fila: " + p + " " + proximoFila.peek());
-                        }
+    // switch (o.getOrgaos().toLowerCase()) {
+    // case "coracao":
+    // if (o.getOrgaos().toLowerCase() == orgaosFila.toLowerCase()) {
+    // for (Paciente p : proximoFila) {
+    // System.out.println("Proximo da fila: " + p + " " + proximoFila.peek());
+    // }
 
-                    }
+    // }
 
-                    break;
-                case "rim":
+    // break;
+    // case "rim":
 
-                    if (o.getOrgaos().toLowerCase() == orgaosFila.toLowerCase()) {
-                        for (Paciente p : proximoFila) {
-                            System.out.println("Proximo da fila: " + p + " " + proximoFila.peek());
-                        }
-                    }
+    // if (o.getOrgaos().toLowerCase() == orgaosFila.toLowerCase()) {
+    // for (Paciente p : proximoFila) {
+    // System.out.println("Proximo da fila: " + p + " " + proximoFila.peek());
+    // }
+    // }
 
-                    break;
-                case "pulmao":
-                    if (o.getOrgaos().toLowerCase() == orgaosFila.toLowerCase()) {
-                        for (Paciente p : proximoFila) {
-                            System.out.println("Proximo da fila: " + p + " " + proximoFila.peek());
-                        }
-                    }
+    // break;
+    // case "pulmao":
+    // if (o.getOrgaos().toLowerCase() == orgaosFila.toLowerCase()) {
+    // for (Paciente p : proximoFila) {
+    // System.out.println("Proximo da fila: " + p + " " + proximoFila.peek());
+    // }
+    // }
 
-                    break;
-                case "figado":
-                    if (o.getOrgaos().toLowerCase() == orgaosFila.toLowerCase()) {
-                        for (Paciente p : proximoFila) {
-                            System.out.println("Proximo da fila: " + p + " " + proximoFila.peek());
-                        }
-                    }
+    // break;
+    // case "figado":
+    // if (o.getOrgaos().toLowerCase() == orgaosFila.toLowerCase()) {
+    // for (Paciente p : proximoFila) {
+    // System.out.println("Proximo da fila: " + p + " " + proximoFila.peek());
+    // }
+    // }
 
-                    break;
-            }
+    // break;
+    // }
 
-        }
+    // }
 
-        sc.close();
+    // sc.close();
 
-    }
+    // }
 
     // private static void verificarCPF(Queue<String> cpfFila, String novoCpf) {
     // for (String cpf : cpfFila) {
@@ -297,26 +399,177 @@ public class App {
     // System.out.println("CPF adicionado com sucesso!");
     // return;
     // }
+    // public static void consultasEstatisticas(Scanner input, Queue<Paciente>
+    // filaCoracao, Queue<Paciente> filaRim,
+    // Queue<Paciente> filaPulmao,
+    // Queue<Paciente> filaFigado) {
+    // int op = 0;
+    // do {
+    // exibirMenuEstatistica();
 
-    public static void qtdPacientesPorFila(Queue<Paciente> Coracao, Queue<Paciente> Rim, Queue<Paciente> Pulmao,
-            Queue<Paciente> Figado) {
-        int PacientesCoracao = 0, PacientesRim = 0, PacientesPulmao = 0, PacientesFigado = 0;
-        for (Paciente p : Coracao) {
-            PacientesCoracao++;
+    // op = input.nextInt();
+
+    // switch (op) {
+    // case 1:
+    // qtdPacientesPorFila(filaCoracao, filaRim, filaPulmao, filaFigado);
+    // break;
+    // case 2:
+    // break;
+    // case 3:
+    // break;
+
+    // }
+
+    // System.out.println();
+    // } while (op != 4);
+
+    // }
+
+    public static void estatiscas(Scanner input, Queue<Paciente> filaCoracao, Queue<Paciente> filaRim,
+            Queue<Paciente> filaPulmao,
+            Queue<Paciente> filaFigado) {
+        int op = 0;
+        do {
+            int pacientesCoracao = 0, pacientesRim = 0, pacientesPulmao = 0, pacientesFigado = 0;
+            long tempoEsperaCoracao = 0, tempoEsperaRim = 0, tempoEsperaPulmao = 0, tempoEsperaFigado = 0;
+            for (Paciente p : filaCoracao) {
+                tempoEsperaCoracao += CalculaDiferencaTempo(p);
+                pacientesCoracao++;
+                // System.out.println(CalculaDiferencaTempo(p));
+            }
+            for (Paciente p : filaRim) {
+                tempoEsperaRim += CalculaDiferencaTempo(p);
+                pacientesRim++;
+                // System.out.println(CalculaDiferencaTempo(p));
+            }
+            for (Paciente p : filaPulmao) {
+                tempoEsperaPulmao += CalculaDiferencaTempo(p);
+                pacientesPulmao++;
+                // System.out.println(CalculaDiferencaTempo(p));
+            }
+            for (Paciente p : filaFigado) {
+                tempoEsperaFigado += CalculaDiferencaTempo(p);
+                pacientesFigado++;
+                // System.out.println(CalculaDiferencaTempo(p));
+            }
+            int totalPacientes = pacientesCoracao + pacientesFigado + pacientesPulmao + pacientesRim;
+
+            exibirMenuEstatistica();
+
+            op = input.nextInt();
+
+            switch (op) {
+                case 1:
+                    System.out.println("Número de pacientes na fila de transplante de coração: " + pacientesCoracao);
+                    System.out.println("Número de pacientes na fila de transplante de rim: " + pacientesRim);
+                    System.out.println("Número de pacientes na fila de transplante de pulmão: " + pacientesPulmao);
+                    System.out.println("Número de pacientes na fila de transplante de fígado: " + pacientesFigado);
+                    break;
+                case 2:
+                    System.out.println("Percentual de pacientes por fila: ");
+                    if (totalPacientes > 0) {
+                        System.out.println("Fila de transplante de coração: "
+                                + formataPercentual((double) pacientesCoracao / totalPacientes));
+                        System.out.println(
+                                "Fila de transplante de rim: "
+                                        + formataPercentual((double) pacientesRim / totalPacientes));
+                        System.out.println(
+                                "Fila de transplante de pulmão: "
+                                        + formataPercentual((double) pacientesPulmao / totalPacientes));
+                        System.out.println(
+                                "Fila de transplante de fígado: "
+                                        + formataPercentual((double) pacientesFigado / totalPacientes));
+                    } else {
+                        System.out.println("Não há pacientes em espera.");
+                    }
+                    break;
+                case 3:
+                    System.out.println("Tempo médio de espera");
+                    System.out.println("Fila de transplante de coração: ");
+                    if (pacientesCoracao > 0) {
+                        exibirDiferencaTempo(tempoEsperaCoracao / pacientesCoracao);
+                    } else {
+                        System.out.println("Fila vazia...");
+                    }
+                    System.out.println("Fila de transplante de rim: ");
+                    if (pacientesRim > 0) {
+                        exibirDiferencaTempo(tempoEsperaRim / pacientesRim);
+                    } else {
+                        System.out.println("Fila vazia...");
+                    }
+                    System.out.println("Fila de transplante de pulmão: ");
+                    if (pacientesPulmao > 0) {
+                        exibirDiferencaTempo(tempoEsperaPulmao / pacientesPulmao);
+                    } else {
+                        System.out.println("Fila vazia...");
+                    }
+                    System.out.println("Fila de transplante de fígado: ");
+                    if (pacientesFigado > 0) {
+                        exibirDiferencaTempo(tempoEsperaFigado / pacientesFigado);
+                    } else {
+                        System.out.println("Fila vazia...");
+                    }
+                    break;
+
+            }
+
+            System.out.println();
+        } while (op != 4);
+
+    }
+
+    public static String formataPercentual(double value) {
+        DecimalFormat df = new DecimalFormat("#0.00%");
+        return df.format(value);
+    }
+
+    public static void recuperaDados(Queue<Paciente> fila, String caminho_arquivo) {
+        System.out.println("Carregando dados...");
+
+        try {
+            FileReader leitor_arquivo = new FileReader(caminho_arquivo);
+            Scanner fluxo_leitura = new Scanner(leitor_arquivo);
+            while (fluxo_leitura.hasNext()) {
+
+                String linha = fluxo_leitura.nextLine();
+
+                String[] campos = linha.split("[|]");
+
+                String nome = campos[0];
+                String cpf = campos[0];
+                // LocalDate nascimento = 
+
+                // PunhadoMoedas p = new PunhadoMoedas(valor_moeda, quantidade);
+                // lista_punhados.add(p);
+
+            }
+            leitor_arquivo.close();
+            fluxo_leitura.close();
+        } catch (Exception e) {
+            System.out.println("Erro ao salvar dados: " + e.getMessage());
+            e.printStackTrace();
         }
-        System.out.println("Número de pacientes na fila de transplante de coração: " + PacientesCoracao);
-        for (Paciente p : Rim) {
-            PacientesRim++;
+    }
+
+    public static void salvDados(Queue<Paciente> fila, String caminho_arquivo){
+        try {
+            Iterator<Paciente> it = fila.iterator();
+            System.out.println("SALVANDO DADOS...");
+            PrintWriter escrita_arquivo = new PrintWriter(caminho_arquivo);
+
+            while (it.hasNext()) {
+                Paciente p = it.next();
+                // escrita_arquivo.write("Moeda: " + p.getValor() + " | Quantidade: " +
+                // p.getQuantidade() + " | Valor total: " +p.getTotalPunhado() + "\n");
+                escrita_arquivo.write(p.getNome() + "|" + p.getCPF() + "|" + p.getSexo() + "|" + p.getData_de_nascimento() +"|" + p.getOrgao() +"|" + p.getData_entrada() + "|" + p.getData_saida() + "\n");
+            }
+
+            escrita_arquivo.close();
+            System.out.println("Dados Salvos com sucesso");
+        } catch (IOException e) {
+            System.out.println("Erro ao salvar dados: " + e.getMessage());
+            e.printStackTrace();
         }
-        System.out.println("Número de pacientes na fila de transplante de rim: " + PacientesRim);
-        for (Paciente p : Pulmao) {
-            PacientesPulmao++;
-        }
-        System.out.println("Número de pacientes na fila de transplante de pulmão: " + PacientesPulmao);
-        for (Paciente p : Figado) {
-            PacientesFigado++;
-        }
-        System.out.println("Número de pacientes na fila de transplante de fígado: " + PacientesFigado);
     }
 
     public static void main(String[] args) throws Exception {
@@ -324,15 +577,51 @@ public class App {
         Queue<Paciente> filaRim = new ArrayDeque<>();
         Queue<Paciente> filaPulmao = new ArrayDeque<>();
         Queue<Paciente> filaFigado = new ArrayDeque<>();
+        String caminhoArquivoCoracao = "coracao.txt", caminhoArquivoRim = "rim.txt", caminhoArquivoPulmao = "pulmao.txt", caminhoArquivoFigado ="figado.txt";
         Map<String, Paciente> basePacientes = new HashMap<>();
+
+        // String caminho_arquivo = "lista-punhados.txt";
+
+        // try {
+        //     FileReader leitor_arquivo = new FileReader(caminho_arquivo);
+        //     Scanner fluxo_leitura = new Scanner(leitor_arquivo);
+        //     while (fluxo_leitura.hasNext()) {
+
+        //         String linha = fluxo_leitura.nextLine();
+
+        //         String[] campos = linha.split("[|]");
+
+        //         Integer quantidade = Integer.parseInt(campos[1]);
+        //         Double valor_moeda = Double.parseDouble(campos[0]);
+
+        //         PunhadoMoedas p = new PunhadoMoedas(valor_moeda, quantidade);
+        //         lista_punhados.add(p);
+
+        //     }
+        //     leitor_arquivo.close();
+        //     fluxo_leitura.close();
+        // } catch (Exception e) {
+        //     System.out.println("Erro ao salvar dados: " + e.getMessage());
+        //     e.printStackTrace();
+        // }
+
         int op;
+        // Dados de teste - apagar *
+        filaCoracao.add(new Paciente("Rogerinho", "123", "m", null, Orgaos.CORACAO));
+        filaFigado.add(new Paciente("Ana", "132", "f", null, Orgaos.FIGADO));
+        filaPulmao.add(new Paciente("Thallys", "321", "m", null, Orgaos.PULMAO));
+        filaRim.add(new Paciente("Luis", "159", "m", null, Orgaos.RIM));
+        filaCoracao.add(new Paciente("Henrique", "951", "m", null, Orgaos.CORACAO));
+        filaFigado.add(new Paciente("Carlos", "777", "m", null, Orgaos.FIGADO));
+        // Paciente rogerin = filaCoracao.peek();
+        // rogerin.setData_saida();
 
         Scanner scanner = new Scanner(System.in); // entrada da opção desejada
 
         do {
             exibirMenuOperacoes();
 
-            System.out.print("Operação [1-4]: ");
+            System.out.print("Operação [1-5]: ");
             op = scanner.nextInt(); // leitura da opção desejada
             scanner.nextLine(); // descarte de caracteres
 
@@ -347,13 +636,22 @@ public class App {
                     chamarProximo(scanner, filaCoracao, filaRim, filaPulmao, filaFigado);
                     break;
                 case 3:
-                    // mostrarProximoPaciente();
+                    mostrarProximoPaciente(scanner, filaCoracao, filaRim, filaPulmao, filaFigado);
+                    ;
+                    break;
+                case 4:
+                    estatiscas(scanner, filaCoracao, filaRim, filaPulmao, filaFigado);
                     break;
 
             }
 
             System.out.println();
-        } while (op != 4); // Mudar de acordo a quantidade de métodos
+        } while (op != 5); // Mudar de acordo a quantidade de métodos
+
+        salvDados(filaFigado, caminhoArquivoFigado);
+        salvDados(filaCoracao, caminhoArquivoCoracao);
+        salvDados(filaRim, caminhoArquivoRim);
+        salvDados(filaPulmao, caminhoArquivoPulmao);
 
         scanner.close();
     }

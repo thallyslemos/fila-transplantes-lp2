@@ -9,15 +9,28 @@ public class Paciente {
     private LocalDateTime data_entrada;
     private LocalDateTime data_saida;
     private Orgaos orgao;
-    
-    public Paciente(String nome, String CPF, String sexo, LocalDate data_de_nascimento, Orgaos orgao2) {
+
+    public Paciente(String nome, String CPF, String sexo, LocalDate data_de_nascimento, Orgaos orgao) {
         this.nome = nome;
         this.CPF = CPF;
         this.sexo = sexo;
         this.data_de_nascimento = data_de_nascimento;
-        this.orgao = orgao2;
+        this.orgao = orgao;
         this.data_entrada = LocalDateTime.now();
+        this.data_saida = null;
 
+    }
+
+    public LocalDate getData_de_nascimento() {
+        return data_de_nascimento;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public String getSexo() {
+        return sexo;
     }
 
     public void setData_saida() {
@@ -42,15 +55,12 @@ public class Paciente {
 
     @Override
     public String toString() {
-        // TODO Auto-generated method stub
-        return  
-        "\nDados do Paciente: "+
-        "\nNome: " + nome +
-        "\nCFP: " + CPF +
-        "\nSexo: " + sexo +
-        "\nData de Nascimento: " + data_de_nascimento +
-        "\nOrgao: " + orgao;
+        return "\nDados do Paciente: " +
+                "\nNome: " + nome +
+                "\nCFP: " + CPF +
+                "\nSexo: " + sexo +
+                "\nData de Nascimento: " + data_de_nascimento +
+                "\nOrgao: " + orgao;
     }
-
 
 }

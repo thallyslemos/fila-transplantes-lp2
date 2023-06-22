@@ -1,38 +1,43 @@
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public class Paciente {
     private String nome;
     private String CPF;
     private String sexo;
-    private Date data_de_nascimento;
-    private Date data_entrada;
-    private Date data_saida;
+    private LocalDate data_de_nascimento;
+    private LocalDateTime data_entrada;
+    private LocalDateTime data_saida;
     private Orgaos orgao;
     
-    public Paciente(String nome, String CPF, String sexo, Date data_de_nascimento, Orgaos orgao) {
+    public Paciente(String nome, String CPF, String sexo, LocalDate data_de_nascimento, Orgaos orgao2) {
         this.nome = nome;
         this.CPF = CPF;
         this.sexo = sexo;
         this.data_de_nascimento = data_de_nascimento;
-        this.orgao = orgao;
-        this.data_entrada = new Date();
+        this.orgao = orgao2;
+        this.data_entrada = LocalDateTime.now();
 
     }
 
-    public void setData_saida(Date data_saida) {
-        this.data_saida = data_saida;
+    public void setData_saida() {
+        this.data_saida = LocalDateTime.now();
     }
 
     public String getCPF() {
         return CPF;
     }
 
-    public Date getData_saida() {
+    public LocalDateTime getData_saida() {
         return data_saida;
     }
 
-    public Date getData_entrada() {
+    public LocalDateTime getData_entrada() {
         return data_entrada;
+    }
+
+    public Orgaos getOrgao() {
+        return orgao;
     }
 
     @Override

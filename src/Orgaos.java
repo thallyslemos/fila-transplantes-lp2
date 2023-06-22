@@ -13,4 +13,13 @@ public enum Orgaos {
     public String getOrgaos() {
         return orgaos;
     }
+
+    public static Orgaos fromString(String value) {
+        for (Orgaos orgao : Orgaos.values()) {
+            if (orgao.orgaos.equalsIgnoreCase(value)) {
+                return orgao;
+            }
+        }
+        throw new IllegalArgumentException("Opção inválida: " + value);
+    }
 }

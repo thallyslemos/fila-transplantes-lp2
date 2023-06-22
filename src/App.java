@@ -27,7 +27,7 @@ public class App {
                 System.out.println("Insira o sexo do paciente: ");
                 String sexo = input.nextLine();
                 System.out.println("Insira a data de nascimento do paciente (dd/mm/aaaa): ");
-                LocalDate dataNascimento = conversaoDataData(input.nextLine());
+                LocalDate dataNascimento = conversaoDataData(input.nextLine(), padraoEntrada);
                 System.out.println("Insira nome do orgão a ser transplantado: ");
                 Orgaos orgao = selecionaOrgao(input);
                 novoPaciente = new Paciente(nome, CPF, sexo, dataNascimento, orgao);
@@ -43,12 +43,24 @@ public class App {
     }
 
     // padrão de entrada de data
-    private static final String PATTERN_DATE = "dd/MM/yyyy";
+    private static final String padraoEntrada = "dd/MM/yyyy";
+    private static final String padraoSaida = "yyyy-MM-dd";
+    private static final String padraoSaidaCompleto = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS";
 
     // conversão de string em data
-    public static LocalDate conversaoDataData(final String string) {
+    // public static LocalDate conversaoDataDat(final String string, String
+    // padraoEntrada) {
+    // return LocalDate.parse(string,
+    // DateTimeFormatter.ofPattern(padraoEntrada));
+    // }
+    public static LocalDateTime conversaoDataDataHora(final String string, String padraoEntrada) {
+        return LocalDateTime.parse(string,
+                DateTimeFormatter.ofPattern(padraoEntrada));
+    }
+
+    public static LocalDate conversaoDataData(final String string, String padraoEntrada) {
         return LocalDate.parse(string,
-                DateTimeFormatter.ofPattern(PATTERN_DATE));
+                DateTimeFormatter.ofPattern(padraoEntrada));
     }
 
     /*
@@ -523,7 +535,7 @@ public class App {
         return df.format(value);
     }
 
-    public static void recuperaDados(Queue<Paciente> fila, String caminho_arquivo) {
+    public static void recuperaDadosDaFila(Queue<Paciente> fila, String caminho_arquivo) {
         System.out.println("Carregando dados...");
 
         try {
@@ -536,12 +548,19 @@ public class App {
                 String[] campos = linha.split("[|]");
 
                 String nome = campos[0];
-                String cpf = campos[0];
-                // LocalDate nascimento = 
-
-                // PunhadoMoedas p = new PunhadoMoedas(valor_moeda, quantidade);
-                // lista_punhados.add(p);
-
+                String cpf = campos[1];
+                String sexo = campos[2];
+                LocalDate nascimento = conversaoDataData(campos[3], padraoSaida);
+                Orgaos orgao = Orgaos.fromString(campos[4]);
+                LocalDateTime data_entrada = null;
+                if (campos[5].compareTo("null") != 0) {
+                    data_entrada = conversaoDataDataHora(campos[5], padraoSaidaCompleto);
+                }
+                LocalDateTime data_saida = null;
+                if (campos[6].compareTo("null") != 0) {
+                    data_saida = conversaoDataDataHora(campos[6], padraoSaidaCompleto);
+                }
+                fila.add(new Paciente(nome, cpf, sexo, nascimento, data_entrada, data_saida, orgao));
             }
             leitor_arquivo.close();
             fluxo_leitura.close();
@@ -551,7 +570,7 @@ public class App {
         }
     }
 
-    public static void salvDados(Queue<Paciente> fila, String caminho_arquivo){
+    public static void salvDadosDaFila(Queue<Paciente> fila, String caminho_arquivo) {
         try {
             Iterator<Paciente> it = fila.iterator();
             System.out.println("SALVANDO DADOS...");
@@ -561,7 +580,9 @@ public class App {
                 Paciente p = it.next();
                 // escrita_arquivo.write("Moeda: " + p.getValor() + " | Quantidade: " +
                 // p.getQuantidade() + " | Valor total: " +p.getTotalPunhado() + "\n");
-                escrita_arquivo.write(p.getNome() + "|" + p.getCPF() + "|" + p.getSexo() + "|" + p.getData_de_nascimento() +"|" + p.getOrgao() +"|" + p.getData_entrada() + "|" + p.getData_saida() + "\n");
+                escrita_arquivo
+                        .write(p.getNome() + "|" + p.getCPF() + "|" + p.getSexo() + "|" + p.getData_de_nascimento()
+                                + "|" + p.getOrgao() + "|" + p.getData_entrada() + "|" + p.getData_saida() + "\n");
             }
 
             escrita_arquivo.close();
@@ -571,48 +592,47 @@ public class App {
             e.printStackTrace();
         }
     }
+    public static Map<String, Paciente> getPacientesDeTodasFilas(Queue<Paciente> fila1, Queue<Paciente> fila2, Queue<Paciente> fila3, Queue<Paciente> fila4) {
+        Map<String, Paciente> mapaPacientes = new HashMap<>();
+        
+        adicionarPacientesDaFila(mapaPacientes, fila1);
+        adicionarPacientesDaFila(mapaPacientes, fila2);
+        adicionarPacientesDaFila(mapaPacientes, fila3);
+        adicionarPacientesDaFila(mapaPacientes, fila4);
+        
+        return mapaPacientes;
+    }
+    
+    public static void adicionarPacientesDaFila(Map<String, Paciente> mapaPacientes, Queue<Paciente> fila) {
+        for (Paciente paciente : fila) {
+            mapaPacientes.put(paciente.getCPF(), paciente);
+        }
+    }
 
     public static void main(String[] args) throws Exception {
         Queue<Paciente> filaCoracao = new ArrayDeque<>();
         Queue<Paciente> filaRim = new ArrayDeque<>();
         Queue<Paciente> filaPulmao = new ArrayDeque<>();
         Queue<Paciente> filaFigado = new ArrayDeque<>();
-        String caminhoArquivoCoracao = "coracao.txt", caminhoArquivoRim = "rim.txt", caminhoArquivoPulmao = "pulmao.txt", caminhoArquivoFigado ="figado.txt";
+        String caminhoArquivoCoracao = "coracao.txt", caminhoArquivoRim = "rim.txt",
+                caminhoArquivoPulmao = "pulmao.txt", caminhoArquivoFigado = "figado.txt";
         Map<String, Paciente> basePacientes = new HashMap<>();
 
-        // String caminho_arquivo = "lista-punhados.txt";
-
-        // try {
-        //     FileReader leitor_arquivo = new FileReader(caminho_arquivo);
-        //     Scanner fluxo_leitura = new Scanner(leitor_arquivo);
-        //     while (fluxo_leitura.hasNext()) {
-
-        //         String linha = fluxo_leitura.nextLine();
-
-        //         String[] campos = linha.split("[|]");
-
-        //         Integer quantidade = Integer.parseInt(campos[1]);
-        //         Double valor_moeda = Double.parseDouble(campos[0]);
-
-        //         PunhadoMoedas p = new PunhadoMoedas(valor_moeda, quantidade);
-        //         lista_punhados.add(p);
-
-        //     }
-        //     leitor_arquivo.close();
-        //     fluxo_leitura.close();
-        // } catch (Exception e) {
-        //     System.out.println("Erro ao salvar dados: " + e.getMessage());
-        //     e.printStackTrace();
-        // }
+        recuperaDadosDaFila(filaFigado, caminhoArquivoFigado);
+        recuperaDadosDaFila(filaPulmao, caminhoArquivoPulmao);
+        recuperaDadosDaFila(filaRim, caminhoArquivoRim);
+        recuperaDadosDaFila(filaCoracao, caminhoArquivoCoracao);
+        basePacientes = getPacientesDeTodasFilas(filaCoracao, filaRim, filaPulmao, filaFigado);
+        System.out.println("\n");
 
         int op;
         // Dados de teste - apagar *
-        filaCoracao.add(new Paciente("Rogerinho", "123", "m", null, Orgaos.CORACAO));
-        filaFigado.add(new Paciente("Ana", "132", "f", null, Orgaos.FIGADO));
-        filaPulmao.add(new Paciente("Thallys", "321", "m", null, Orgaos.PULMAO));
-        filaRim.add(new Paciente("Luis", "159", "m", null, Orgaos.RIM));
-        filaCoracao.add(new Paciente("Henrique", "951", "m", null, Orgaos.CORACAO));
-        filaFigado.add(new Paciente("Carlos", "777", "m", null, Orgaos.FIGADO));
+        // filaCoracao.add(new Paciente("Rogerinho", "123", "m", null, Orgaos.CORACAO));
+        // filaFigado.add(new Paciente("Ana", "132", "f", null, Orgaos.FIGADO));
+        // filaPulmao.add(new Paciente("Thallys", "321", "m", null, Orgaos.PULMAO));
+        // filaRim.add(new Paciente("Luis", "159", "m", null, Orgaos.RIM));
+        // filaCoracao.add(new Paciente("Henrique", "951", "m", null, Orgaos.CORACAO));
+        // filaFigado.add(new Paciente("Carlos", "777", "m", null, Orgaos.FIGADO));
         // Paciente rogerin = filaCoracao.peek();
         // rogerin.setData_saida();
 
@@ -648,10 +668,10 @@ public class App {
             System.out.println();
         } while (op != 5); // Mudar de acordo a quantidade de métodos
 
-        salvDados(filaFigado, caminhoArquivoFigado);
-        salvDados(filaCoracao, caminhoArquivoCoracao);
-        salvDados(filaRim, caminhoArquivoRim);
-        salvDados(filaPulmao, caminhoArquivoPulmao);
+        salvDadosDaFila(filaFigado, caminhoArquivoFigado);
+        salvDadosDaFila(filaCoracao, caminhoArquivoCoracao);
+        salvDadosDaFila(filaRim, caminhoArquivoRim);
+        salvDadosDaFila(filaPulmao, caminhoArquivoPulmao);
 
         scanner.close();
     }

@@ -21,6 +21,22 @@ public class Paciente {
 
     }
 
+    public Paciente(String nome,
+            String CPF,
+            String sexo,
+            LocalDate data_de_nascimento,
+            LocalDateTime data_entrada,
+            LocalDateTime data_saida,
+            Orgaos orgao) {
+        this.nome = nome;
+        this.CPF = CPF;
+        this.sexo = sexo;
+        this.data_de_nascimento = data_de_nascimento;
+        this.orgao = orgao;
+        this.data_entrada = data_entrada;
+        this.data_saida = data_saida;
+    }
+
     public LocalDate getData_de_nascimento() {
         return data_de_nascimento;
     }
